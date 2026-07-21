@@ -17,7 +17,7 @@ html{ scroll-behavior:smooth; }
 body{
   background: var(--bg);
   color: var(--text);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
   overflow-x: hidden;
   position: relative;
 }
@@ -74,10 +74,13 @@ body{
 }
 
 .hero h1{
-  font-size: clamp(56px, 11vw, 128px);
-  line-height: 0.92;
-  font-weight: 700;
-  letter-spacing: -2px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-optical-sizing: auto;
+  font-size: clamp(52px, 9.5vw, 112px);
+  line-height: 0.98;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: -0.5px;
   background: linear-gradient(160deg, #fff 10%, var(--purple-bright) 70%, var(--magenta) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -115,11 +118,14 @@ body{
 }
 
 h2{
-  font-size: clamp(32px, 5vw, 52px);
-  line-height: 1.05;
-  font-weight: 700;
-  letter-spacing: -1px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-optical-sizing: auto;
+  font-size: clamp(30px, 4.2vw, 46px);
+  line-height: 1.08;
+  font-weight: 500;
+  letter-spacing: -0.3px;
   margin-bottom: 40px;
+  color: #f4f0fb;
 }
 
 .body-text{
