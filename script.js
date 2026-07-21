@@ -202,3 +202,42 @@ if(prefersReducedMotion){
 } else {
   requestAnimationFrame(draw);
 }
+
+// Animated stat counters — count up once when scrolled into view
+function animateCounter(el){
+  const target = parseFloat(el.dataset.target);
+  const suffix = el.dataset.suffix || '';
+  const prefix = el.dataset.prefix || '';
+  const isStatic = el.dataset.static === 'true';
+
+  if(isStatic || prefersReducedMotion){
+    el.textContent = prefix + target + suffix;
+    return;
+  }
+
+  const duration = 1400;
+  const start = performance.now();
+
+  function tick(now){
+    const progress = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const value = Math.round(target * eased);
+    el.textContent = prefix + value + suffix;
+    if(progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+const counterEls = document.querySelectorAll('.stat-num[data-target]');
+if(counterEls.length){
+  const observer = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        animateCounter(entry.target);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.6 });
+
+  counterEls.forEach(el => observer.observe(el));
+}
