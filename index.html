@@ -3,107 +3,702 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vaxello — Never Miss a Dose</title>
+<title>Vaxello — Technology that remembers when memories can't.</title>
+<meta name="description" content="Vaxello is an NFC-powered medication reminder for people living with Alzheimer's and dementia, and the families who care for them.">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<style>
+:root{
+  --bg: #050505;
+  --bg-2: #0B0B0D;
+  --card: #111111;
+  --border: rgba(255,255,255,.08);
+  --text: #FFFFFF;
+  --text-muted: #B3B3B3;
+  --cyan: #4EEBFF;
+  --purple: #8568FF;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+html{ scroll-behavior: smooth; background: var(--bg); }
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection{ background: rgba(78,235,255,0.25); color: #fff; }
+
+a{ color: inherit; text-decoration: none; }
+
+/* ---------- signature element: the signal line ---------- */
+#signal-line-wrap{
+  position: fixed;
+  top: 0; left: 50%;
+  width: 1px;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+}
+#signal-line{
+  position: absolute;
+  top:0; left:0;
+  width: 1px; height: 100%;
+  background: linear-gradient(to bottom, transparent, rgba(78,235,255,0.35) 8%, rgba(133,104,255,0.3) 50%, rgba(78,235,255,0.35) 92%, transparent);
+}
+#signal-pulse{
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 6px; height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 16px 4px rgba(78,235,255,0.7);
+}
+
+/* ---------- shared layout ---------- */
+.wrap{
+  position: relative;
+  z-index: 2;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 6vw;
+}
+
+section{ position: relative; z-index: 2; }
+
+.eyebrow{
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 20px;
+  display: inline-block;
+}
+
+h1, h2, h3{ font-family: var(--font-display); font-weight: 600; }
+
+.reveal{ opacity: 0; transform: translateY(28px); }
+
+/* ---------- nav ---------- */
+nav{
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 26px 6vw;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(to bottom, rgba(5,5,5,0.7), transparent);
+}
+.nav-logo{ font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: 1px; }
+.nav-links{ display:flex; gap: 36px; font-size: 13px; color: var(--text-muted); }
+.nav-links a:hover{ color: var(--text); }
+
+/* ---------- hero ---------- */
+.hero{
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: 100px;
+}
+.hero-grid{
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 40px;
+  align-items: center;
+  width: 100%;
+}
+.hero h1{
+  font-size: clamp(38px, 5.6vw, 68px);
+  line-height: 1.08;
+  letter-spacing: -1px;
+  margin-bottom: 26px;
+}
+.hero h1 .grad{
+  background: linear-gradient(120deg, #fff 30%, var(--cyan) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero p{
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 440px;
+  margin-bottom: 40px;
+}
+.cta-row{ display:flex; gap: 16px; flex-wrap: wrap; }
+
+.btn{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 28px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+  overflow: hidden;
+}
+.btn-primary{
+  background: var(--cyan);
+  color: #051012;
+  border: none;
+}
+.btn-primary:hover{
+  box-shadow: 0 0 30px rgba(78,235,255,0.45);
+  transform: translateY(-2px);
+}
+.btn-secondary{
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+}
+.btn-secondary:hover{
+  background: rgba(255,255,255,0.07);
+  transform: translateY(-2px);
+}
+
+#device-canvas-wrap{
+  position: relative;
+  height: 460px;
+}
+#device-canvas{ width: 100%; height: 100%; }
+
+/* ---------- stats / problem ---------- */
+.section-pad{ padding: 180px 0; }
+
+.problem-head{ max-width: 620px; margin-bottom: 80px; }
+.problem-head h2{
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.15;
+  color: #fff;
+}
+.stat-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 40px;
+}
+.stat-num{
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5.5vw, 64px);
+  font-weight: 700;
+  background: linear-gradient(120deg, #fff, var(--cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+}
+.stat-label{ margin-top: 14px; font-size: 14px; color: var(--text-muted); max-width: 220px; }
+
+/* ---------- solution ---------- */
+.solution-head{ max-width: 640px; margin: 0 auto 70px; text-align: center; }
+.solution-head h2{ font-size: clamp(28px, 4vw, 44px); }
+
+.feature-orbit{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+.glass-card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 26px;
+  transition: transform .35s ease, border-color .35s ease, background .35s ease;
+}
+.glass-card:hover{
+  transform: translateY(-6px);
+  border-color: rgba(78,235,255,0.3);
+  background: #131316;
+}
+.glass-card .icon{
+  width: 40px; height: 40px;
+  margin-bottom: 22px;
+  color: var(--cyan);
+}
+.glass-card h3{ font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+.glass-card p{ font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+/* ---------- how it works ---------- */
+.timeline{
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.timeline-step{
+  position: relative;
+  padding: 0 0 70px 56px;
+  border-left: 1px solid var(--border);
+}
+.timeline-step:last-child{ border-left: 1px solid transparent; padding-bottom: 0; }
+.timeline-dot{
+  position: absolute;
+  left: -6.5px; top: 2px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--cyan);
+}
+.timeline-dot::after{
+  content:'';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px 2px rgba(78,235,255,0.6);
+}
+.timeline-step h3{ font-size: 20px; margin-bottom: 8px; }
+.timeline-step p{ font-size: 14px; color: var(--text-muted); max-width: 420px; line-height: 1.6; }
+
+/* ---------- comparison ---------- */
+.compare-head{ text-align:center; max-width: 600px; margin: 0 auto 60px; }
+.compare-head h2{ font-size: clamp(28px,4vw,44px); }
+.compare-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.compare-card{
+  border-radius: 20px;
+  padding: 34px 28px;
+  border: 1px solid var(--border);
+}
+.compare-card.old{ background: var(--bg-2); opacity: 0.75; }
+.compare-card.new{
+  background: linear-gradient(160deg, rgba(78,235,255,0.06), rgba(133,104,255,0.05));
+  border-color: rgba(78,235,255,0.25);
+}
+.compare-card h4{ font-family: var(--font-display); font-size: 16px; margin-bottom: 20px; letter-spacing: 1px; }
+.compare-card ul{ list-style:none; }
+.compare-card li{
+  font-size: 14px; color: var(--text-muted);
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px;
+}
+.compare-card.new li{ color: #e8feff; }
+.compare-card li:first-child{ border-top:none; }
+
+@media (max-width: 700px){
+  .compare-grid{ grid-template-columns: 1fr; }
+}
+
+/* ---------- families ---------- */
+.families{
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  padding: 100px 6vw;
+  text-align: center;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(133,104,255,0.14), transparent 60%),
+    radial-gradient(circle at 70% 80%, rgba(78,235,255,0.10), transparent 60%),
+    var(--bg-2);
+  border: 1px solid var(--border);
+}
+.families h2{
+  font-size: clamp(30px, 4.5vw, 52px);
+  max-width: 720px;
+  margin: 0 auto 24px;
+  line-height: 1.2;
+}
+.families p{ color: var(--text-muted); max-width: 480px; margin: 0 auto; font-size: 16px; line-height: 1.7; }
+
+/* ---------- demo ---------- */
+.demo-box{
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  padding: 60px 6vw;
+  text-align: center;
+}
+.demo-tag{
+  width: 120px; height: 120px;
+  margin: 0 auto 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(78,235,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform .2s ease;
+}
+.demo-tag:active{ transform: scale(0.96); }
+.demo-tag::before, .demo-tag::after{
+  content:'';
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  border: 1px solid rgba(78,235,255,0.15);
+}
+.demo-tag::after{ inset: -36px; border-color: rgba(78,235,255,0.08); }
+.demo-tag svg{ width: 40px; height: 40px; color: var(--cyan); }
+
+.demo-steps{
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 44px;
+  flex-wrap: wrap;
+}
+.demo-step{
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0.35;
+  transition: opacity .3s ease, color .3s ease;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.demo-step.active{ opacity: 1; color: var(--cyan); }
+.demo-step .dot{
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor;
+}
+.demo-hint{ margin-top: 28px; font-size: 12px; color: var(--text-muted); letter-spacing: 1px; }
+
+/* ---------- testimonials ---------- */
+.testi-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.testi-card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 30px 26px;
+}
+.testi-card p{ font-size: 15px; line-height: 1.7; color: #e8e8ea; margin-bottom: 22px; }
+.testi-person{ display:flex; align-items:center; gap: 12px; }
+.testi-avatar{
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  flex-shrink: 0;
+}
+.testi-name{ font-size: 13px; font-weight: 600; }
+.testi-role{ font-size: 12px; color: var(--text-muted); }
+
+/* ---------- FAQ ---------- */
+.faq-item{
+  border-top: 1px solid var(--border);
+}
+.faq-item:last-child{ border-bottom: 1px solid var(--border); }
+.faq-q{
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 26px 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+}
+.faq-q .plus{ transition: transform .3s ease; color: var(--cyan); font-size: 20px; }
+.faq-item.open .plus{ transform: rotate(45deg); }
+.faq-a{
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .35s ease;
+}
+.faq-a p{ padding: 0 4px 26px; font-size: 14px; color: var(--text-muted); line-height: 1.7; max-width: 560px; }
+
+/* ---------- final CTA ---------- */
+.final-cta{ text-align: center; padding: 200px 0; }
+.final-cta h2{
+  font-size: clamp(34px, 6vw, 64px);
+  line-height: 1.1;
+  margin-bottom: 44px;
+}
+
+/* ---------- footer ---------- */
+footer{
+  border-top: 1px solid var(--border);
+  padding: 50px 6vw;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+footer a:hover{ color: var(--text); }
+.footer-links{ display:flex; gap: 28px; flex-wrap: wrap; }
+
+@media (max-width: 860px){
+  .hero-grid{ grid-template-columns: 1fr; }
+  #device-canvas-wrap{ height: 320px; order: -1; }
+  .nav-links{ display:none; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior: auto; }
+  .reveal{ opacity: 1 !important; transform: none !important; }
+}
+</style>
 </head>
 <body>
 
-<canvas id="neuron-canvas"></canvas>
+<div id="signal-line-wrap">
+  <div id="signal-line"></div>
+  <div id="signal-pulse"></div>
+</div>
 
-<nav class="topnav">
-  <div class="logo">VAXELLO</div>
-  <div class="navlinks">
-    <span>PRODUCT</span>
-    <span>HOW IT WORKS</span>
-    <span>PRICING</span>
+<nav>
+  <div class="nav-logo">VAXELLO</div>
+  <div class="nav-links">
+    <a href="#solution">Product</a>
+    <a href="#how">How it works</a>
+    <a href="#families">For families</a>
+    <a href="#faq">FAQ</a>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="section hero">
-  <div class="eyebrow">NFC MEMORY SUPPORT · GEN 2</div>
-  <h1>A tap<br>they<br>never<br>forget.</h1>
-  <p class="sub">Vaxello is a coin-sized NFC chip that lives on a pill case, a fridge, a door frame — anywhere a hand already goes. One tap confirms the dose. No tap, and the people who love them find out.</p>
-  <div class="scroll-hint">SCROLL — SIGNAL INCOMING</div>
+<section class="hero wrap">
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow">NFC MEDICATION SUPPORT</div>
+      <h1>Memory fades.<br><span class="grad">Routine shouldn't.</span></h1>
+      <p>Vaxello is a single tap that confirms a dose was taken — no app to open, no button to remember. When the tap doesn't happen, the people who care find out gently, before it becomes a crisis.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#families">Get started</a>
+        <a class="btn btn-secondary" href="#solution">Learn more</a>
+      </div>
+    </div>
+    <div id="device-canvas-wrap">
+      <canvas id="device-canvas"></canvas>
+    </div>
+  </div>
 </section>
 
 <!-- PROBLEM -->
-<section class="section problem">
-  <div class="tag">01 — THE GAP</div>
-  <h2>Memory fails quietly.</h2>
-  <div class="stat-row">
-    <div class="stat">
-      <div class="stat-num">55M+</div>
-      <div class="stat-label">people living with dementia worldwide</div>
+<section class="section-pad wrap">
+  <div class="problem-head">
+    <div class="eyebrow reveal">THE PROBLEM</div>
+    <h2 class="reveal">Missed medication rarely looks dramatic. It looks like a box left on the counter.</h2>
+  </div>
+  <div class="stat-grid">
+    <div class="reveal">
+      <div class="stat-num" data-target="55" data-suffix="M+">0</div>
+      <div class="stat-label">people are living with dementia worldwide</div>
     </div>
-    <div class="stat">
-      <div class="stat-num">1 in 2</div>
-      <div class="stat-label">miss doses without a reminder system</div>
+    <div class="reveal">
+      <div class="stat-num" data-target="50" data-suffix="%">0</div>
+      <div class="stat-label">of doses are missed without a reminder system in place</div>
     </div>
-    <div class="stat">
-      <div class="stat-num">0</div>
-      <div class="stat-label">apps required to use Vaxello</div>
+    <div class="reveal">
+      <div class="stat-num" data-target="0" data-static="true">0</div>
+      <div class="stat-label">apps a person needs to open to use Vaxello</div>
     </div>
   </div>
-  <p class="body-text">Missed medication rarely looks dramatic. It looks like a box left on the counter. Vaxello turns that quiet moment into a signal — for the person, and for whoever's watching out for them.</p>
 </section>
 
-<!-- PRODUCT -->
-<section class="section product">
-  <div class="tag">02 — THE CHIP</div>
-  <h2>Nothing to charge.<br>Nothing to open.</h2>
-  <div class="chip-visual">
-    <div class="chip-ring"></div>
-    <div class="chip-core">
-      <div class="chip-inner"></div>
+<!-- SOLUTION -->
+<section id="solution" class="section-pad wrap">
+  <div class="solution-head">
+    <div class="eyebrow reveal">THE SOLUTION</div>
+    <h2 class="reveal">One quiet device, four jobs.</h2>
+  </div>
+  <div class="feature-orbit">
+    <div class="glass-card reveal">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9V7a2 2 0 012-2h5l2 2h5a2 2 0 012 2v2M4 9v8a2 2 0 002 2h12a2 2 0 002-2V9M4 9h16"/></svg>
+      <h3>Passive NFC</h3>
+      <p>No battery, no charging, no setup. A single tap from any NFC-enabled phone is all it needs.</p>
+    </div>
+    <div class="glass-card reveal">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8v4l3 3M12 21a9 9 0 100-18 9 9 0 000 18z"/></svg>
+      <h3>Gentle reminders</h3>
+      <p>A soft nudge if the window passes — never an alarm, never a scold.</p>
+    </div>
+    <div class="glass-card reveal">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <h3>Dose logging</h3>
+      <p>Every tap is timestamped quietly in the background — nothing to fill in, nothing to remember.</p>
+    </div>
+    <div class="glass-card reveal">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <h3>Caregiver notified</h3>
+      <p>If a dose is missed, one message goes to the person who needs to know — nobody else.</p>
     </div>
   </div>
-  <ul class="spec-list">
-    <li><span>DIAMETER</span><span>24mm</span></li>
-    <li><span>POWER</span><span>none — passive NFC</span></li>
-    <li><span>RANGE</span><span>4cm read distance</span></li>
-    <li><span>LIFESPAN</span><span>10+ years</span></li>
-    <li><span>PAIRING</span><span>any NFC-enabled phone</span></li>
-  </ul>
 </section>
 
 <!-- HOW IT WORKS -->
-<section class="section how">
-  <div class="tag">03 — THE LOOP</div>
-  <h2>Tap. Confirm. Rest easy.</h2>
-  <div class="loop-grid">
-    <div class="loop-step">
-      <div class="loop-mark">TAP</div>
-      <p>Phone touches the chip on the pill case at the moment the dose is taken.</p>
+<section id="how" class="section-pad wrap">
+  <div class="solution-head">
+    <div class="eyebrow reveal">HOW IT WORKS</div>
+    <h2 class="reveal">Four steps. Thirty seconds.</h2>
+  </div>
+  <div class="timeline">
+    <div class="timeline-step reveal">
+      <div class="timeline-dot"></div>
+      <h3>Tap</h3>
+      <p>Phone touches the Vaxello chip on the pill case, fridge, or door frame, right where the hand already goes.</p>
     </div>
-    <div class="loop-step">
-      <div class="loop-mark">SIGNAL</div>
-      <p>A quiet timestamp is logged. No app to open, no button to remember.</p>
+    <div class="timeline-step reveal">
+      <div class="timeline-dot"></div>
+      <h3>Recorded</h3>
+      <p>The moment is timestamped instantly. No app opens, nothing to confirm.</p>
     </div>
-    <div class="loop-step">
-      <div class="loop-mark">NOTIFY</div>
-      <p>If the window passes with no tap, one nudge goes to a chosen carer.</p>
+    <div class="timeline-step reveal">
+      <div class="timeline-dot"></div>
+      <h3>Caregiver updated</h3>
+      <p>A quiet log builds in the companion app for whoever's looking out for them.</p>
+    </div>
+    <div class="timeline-step reveal">
+      <div class="timeline-dot"></div>
+      <h3>Routine completed</h3>
+      <p>If a tap is missed, one gentle nudge goes out before it becomes a bigger worry.</p>
     </div>
   </div>
 </section>
 
-<!-- PRICING (MOCK) -->
-<section class="section pricing">
-  <div class="tag">04 — GET VAXELLO</div>
-  <h2>Concept pricing<br>— not for sale.</h2>
-  <div class="price-card">
-    <div class="price-name">STARTER PACK</div>
-    <div class="price-amount">£29</div>
-    <div class="price-desc">2 chips + carer app pairing</div>
+<!-- WHY NFC -->
+<section class="section-pad wrap">
+  <div class="compare-head">
+    <div class="eyebrow reveal">WHY NFC</div>
+    <h2 class="reveal">Compared to a pill box.</h2>
   </div>
-  <p class="disclaimer">This is a concept mock-up built for a design study. Vaxello is not a real, purchasable product.</p>
+  <div class="compare-grid">
+    <div class="compare-card old reveal">
+      <h4>TRADITIONAL PILL BOX</h4>
+      <ul>
+        <li>Needs to be refilled and checked manually</li>
+        <li>No record of whether a dose was actually taken</li>
+        <li>Family only finds out after the fact</li>
+        <li>Easy to lose track of which day it is</li>
+      </ul>
+    </div>
+    <div class="compare-card new reveal">
+      <h4>VAXELLO</h4>
+      <ul>
+        <li>Nothing to charge, refill, or configure</li>
+        <li>Every tap timestamped automatically</li>
+        <li>Caregiver notified the moment a dose is missed</li>
+        <li>Works with whatever routine already exists</li>
+      </ul>
+    </div>
+  </div>
 </section>
 
-<footer class="footer">
-  <div>VAXELLO — A MOCK CONCEPT</div>
-  <div>BUILT WITH SONEXA</div>
+<!-- FOR FAMILIES -->
+<section id="families" class="section-pad wrap">
+  <div class="families reveal">
+    <div class="eyebrow">FOR FAMILIES</div>
+    <h2>You can't be there for every dose. Vaxello can.</h2>
+    <p>A quiet signal that travels from the person you love to you, the moment it matters — nothing more, nothing less.</p>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section-pad wrap">
+  <div class="solution-head">
+    <div class="eyebrow reveal">FEATURES</div>
+    <h2 class="reveal">Everything it needs. Nothing it doesn't.</h2>
+  </div>
+  <div class="feature-orbit">
+    <div class="glass-card reveal"><h3>Secure NFC</h3><p>Encrypted at the tap, every time.</p></div>
+    <div class="glass-card reveal"><h3>No battery</h3><p>Passive power, no charging ever.</p></div>
+    <div class="glass-card reveal"><h3>2-minute setup</h3><p>Stick it, pair it, done.</p></div>
+    <div class="glass-card reveal"><h3>Built for accessibility</h3><p>Large tap zone, no fine motor skill needed.</p></div>
+    <div class="glass-card reveal"><h3>4cm range</h3><p>Forgiving even with unsteady hands.</p></div>
+    <div class="glass-card reveal"><h3>Instant sync</h3><p>Caregiver app updates in real time.</p></div>
+  </div>
+</section>
+
+<!-- INTERACTIVE DEMO -->
+<section class="section-pad wrap">
+  <div class="demo-box reveal">
+    <div class="eyebrow">TRY IT</div>
+    <h2 style="font-size: clamp(24px,3.4vw,34px); margin-bottom: 40px;">Tap the tag.</h2>
+    <div class="demo-tag" id="demo-tag" role="button" tabindex="0" aria-label="Simulate an NFC tap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6.34 17.66a8 8 0 010-11.32M17.66 6.34a8 8 0 010 11.32M9.17 14.83a4 4 0 010-5.66M14.83 9.17a4 4 0 010 5.66"/></svg>
+    </div>
+    <div class="demo-steps">
+      <div class="demo-step" id="demo-step-1"><div class="dot"></div>Reminder received</div>
+      <div class="demo-step" id="demo-step-2"><div class="dot"></div>Medication logged</div>
+      <div class="demo-step" id="demo-step-3"><div class="dot"></div>Caregiver notified</div>
+    </div>
+    <div class="demo-hint">TAP TO SIMULATE</div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section-pad wrap">
+  <div class="solution-head">
+    <div class="eyebrow reveal">TESTIMONIALS</div>
+    <h2 class="reveal">From people who use it.</h2>
+  </div>
+  <div class="testi-grid">
+    <div class="testi-card reveal">
+      <p>"I don't check the pill box anymore. If something's wrong, I just get a message."</p>
+      <div class="testi-person"><div class="testi-avatar"></div><div><div class="testi-name">Marianne</div><div class="testi-role">Daughter and carer</div></div></div>
+    </div>
+    <div class="testi-card reveal">
+      <p>"Dad doesn't have to remember an app. He just taps the same spot he always has."</p>
+      <div class="testi-person"><div class="testi-avatar"></div><div><div class="testi-name">Josh</div><div class="testi-role">Son and carer</div></div></div>
+    </div>
+    <div class="testi-card reveal">
+      <p>"It's the first piece of tech she's used without getting frustrated."</p>
+      <div class="testi-person"><div class="testi-avatar"></div><div><div class="testi-name">Elaine</div><div class="testi-role">Care home coordinator</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="section-pad wrap">
+  <div class="solution-head" style="margin-bottom: 40px;">
+    <div class="eyebrow reveal">FAQ</div>
+    <h2 class="reveal">Questions people ask.</h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item reveal">
+      <div class="faq-q"><span>Does it need charging?</span><span class="plus">+</span></div>
+      <div class="faq-a"><p>No. Vaxello is passive NFC — it draws its power from the phone that taps it, so there's never a battery to manage.</p></div>
+    </div>
+    <div class="faq-item reveal">
+      <div class="faq-q"><span>Does the person need a smartphone?</span><span class="plus">+</span></div>
+      <div class="faq-a"><p>Just an NFC-enabled phone, which most modern phones already are. No app needs to be opened — the tap itself is the whole interaction.</p></div>
+    </div>
+    <div class="faq-item reveal">
+      <div class="faq-q"><span>Who sees the data?</span><span class="plus">+</span></div>
+      <div class="faq-a"><p>Only the caregiver you choose. Nothing is shared beyond that connection.</p></div>
+    </div>
+    <div class="faq-item reveal">
+      <div class="faq-q"><span>Is this a real, purchasable product?</span><span class="plus">+</span></div>
+      <div class="faq-a"><p>Vaxello is a concept design — this site is a mock-up, not a live store.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta wrap">
+  <h2 class="reveal">Ready to simplify<br>medication routines?</h2>
+  <a class="btn btn-primary reveal" href="#" style="padding: 18px 40px; font-size: 15px;">Get started</a>
+</section>
+
+<footer>
+  <div>VAXELLO — A CONCEPT DESIGN</div>
+  <div class="footer-links">
+    <a href="#">Contact</a>
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+  </div>
 </footer>
 
 <script src="script.js"></script>
